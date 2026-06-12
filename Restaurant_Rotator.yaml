@@ -1,0 +1,315 @@
+type: custom:layout-card
+layout_type: custom:grid-layout
+layout:
+  # Outer grid: a single column with two stacked rows (top strip, category row).
+  # Each row is its own nested layout-card so they can size independently.
+  grid-template-columns: 1fr
+  grid-template-rows: auto auto
+  grid-row-gap: 12px
+  # Cap overall width (names are short) and center the whole thing.
+  max-width: 850px
+  margin: 0 auto
+title: Restaurant Rotator
+icon: mdi:silverware-fork-knife
+cards:
+  # === TOP ROW: clock | weather | Today's Deals ==========================
+  # Clock + weather are FIXED widths so they render the same on every screen
+  # (no wrapping on the tablet). Only Today's Deals (1fr) flexes with width.
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 250px 250px 460px 80px
+      grid-template-areas: '"clock weather deals add"'
+      grid-column-gap: 8px
+      justify-content: center
+      mediaquery:
+        "(max-width: 800px)":
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "clock"
+            "weather"
+            "deals"
+            "add"
+    cards:
+      - type: custom:better-moment-card
+        view_layout:
+          grid-area: clock
+        parentStyle: line-height:normal;
+        moment:
+          - parentStyle: font-size:1.5em; text-align:left; margin-top:2px;
+            templateRaw: "{{moment format=cccc}}"
+          - parentStyle: font-size:1.5em; text-align:left;
+            templateRaw: "{{moment format=LLLL dd, yyyy}}"
+          - parentStyle: font-size:2.5em; text-align:left; font-weight:400; white-space:nowrap;
+            templateRaw: "{{moment format=h:mm a}}"
+        card_mod:
+          style: |
+            ha-card {
+              height: 140px !important;
+              padding: 12px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+            }
+      - type: custom:weather-card
+        view_layout:
+          grid-area: weather
+        entity: weather.forecast_home
+        current: true
+        details: false
+        forecast: false
+        card_mod:
+          style: |
+            ha-card {
+              height: 140px !important;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 12px;
+            }
+      - type: custom:config-template-card
+        view_layout:
+          grid-area: deals
+        entities:
+          - sensor.restaurant_deals_today
+        card:
+          type: markdown
+          content: >-
+            ${ (states['sensor.restaurant_deals_today'].attributes.deals || []).length
+              ? "### 🏷️ Today's Deals\n\n" + states['sensor.restaurant_deals_today'].attributes.deals.map((d, i) => (i + 1) + ". **" + d.name + "** – " + d.deal_text).join("\n")
+              : "### 🏷️ Today's Deals\n\n_No deals today._" + ((states['sensor.restaurant_deals_today'].attributes.upcoming || []).length
+                  ? "   — **Coming up:**\n" + states['sensor.restaurant_deals_today'].attributes.upcoming.slice(0, 2).map(d => "• " + d.day + ": **" + d.name + "** – " + d.deal_text).join("\n")
+                  : "") }
+          card_mod:
+            style: |
+              ha-card {
+                height: 140px !important;
+                overflow-y: auto;
+              }
+      - type: custom:button-card
+        view_layout:
+          grid-area: add
+        icon: mdi:plus
+        size: 48px
+        tap_action:
+          action: call-service
+          service: browser_mod.popup
+          data:
+            title: Add a Restaurant
+            dismissable: true
+            content:
+              type: entities
+              show_header_toggle: false
+              entities:
+                - entity: input_text.restaurant_new_name
+                  name: Name
+                - entity: input_select.restaurant_new_category
+                  name: Category
+                - entity: input_select.restaurant_new_deal_day
+                  name: Deal day (optional)
+                - entity: input_text.restaurant_new_deal_text
+                  name: Deal text (optional)
+            right_button: Add
+            right_button_action:
+              action: call-service
+              service: script.restaurant_add_from_form
+            left_button: Close
+            left_button_action:
+              action: none
+        card_mod:
+          style: |
+            ha-card {
+              height: 140px !important;
+            }
+
+  # === CATEGORY ROW: Fast Food | Casual | Sit Down =======================
+  # Independent 3-equal-column grid. Each column is ONE card (background via
+  # card_mod on the outer stack); header + rows are transparent inside it.
+  - type: custom:layout-card
+    layout_type: custom:grid-layout
+    layout:
+      grid-template-columns: 350px 350px 350px
+      grid-template-areas: '"ff casual sitdown"'
+      grid-column-gap: 8px
+      justify-content: center
+      mediaquery:
+        "(max-width: 800px)":
+          grid-template-columns: 1fr
+          grid-template-areas: |
+            "ff"
+            "casual"
+            "sitdown"
+    cards:
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: ff
+        card_mod:
+          style: |
+            ha-card { padding-bottom: 12px; }
+        cards:
+          - type: markdown
+            content: >
+              <h3 style="text-align:center;margin:0 0 6px;padding-bottom:6px;
+              border-bottom:2px solid var(--divider-color);">Fast Food</h3>
+          - type: custom:config-template-card
+            entities:
+              - sensor.restaurant_fast_food
+            card:
+              type: vertical-stack
+              cards: |-
+                ${ ((states['sensor.restaurant_fast_food'].attributes.items || []).length === 0)
+                  ? [{ type: 'markdown', content: '_No restaurants yet._' }]
+                  : states['sensor.restaurant_fast_food'].attributes.items.map(item => ({
+                      type: 'custom:button-card',
+                      name: item.has_deal_today ? (item.name + ' — ' + item.deal_text) : item.name,
+                      icon: item.checked ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline',
+                      size: '20px',
+                      tap_action: {
+                        action: 'call-service',
+                        service: item.checked ? 'pyscript.restaurant_unmark_visited' : 'pyscript.restaurant_mark_visited',
+                        service_data: { id: item.id }
+                      },
+                      styles: {
+                        card: [
+                          { 'box-shadow': 'none' },
+                          { border: 'none' },
+                          { 'border-radius': '6px' },
+                          { padding: '3px 14px' },
+                          { margin: '0' },
+                          { 'background-color': item.has_deal_today ? 'rgba(240,165,0,0.18)' : 'transparent' }
+                        ],
+                        grid: [
+                          { 'grid-template-areas': '"i n"' },
+                          { 'grid-template-columns': 'min-content 1fr' },
+                          { 'align-items': 'center' }
+                        ],
+                        icon: [
+                          { color: item.checked ? '#9e9e9e' : (item.has_deal_today ? '#f0a500' : 'var(--secondary-text-color)') },
+                          { width: '20px' }
+                        ],
+                        name: [
+                          { 'justify-self': 'start' },
+                          { 'padding-left': '8px' },
+                          { 'font-size': '14px' },
+                          { 'font-weight': (!item.checked && item.has_deal_today) ? '600' : '400' },
+                          { color: item.checked ? '#9e9e9e' : 'var(--primary-text-color)' },
+                          { 'text-decoration': item.checked ? 'line-through' : 'none' }
+                        ]
+                      }
+                    })) }
+
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: casual
+        card_mod:
+          style: |
+            ha-card { padding-bottom: 12px; }
+        cards:
+          - type: markdown
+            content: >
+              <h3 style="text-align:center;margin:0 0 6px;padding-bottom:6px;
+              border-bottom:2px solid var(--divider-color);">Casual</h3>
+          - type: custom:config-template-card
+            entities:
+              - sensor.restaurant_casual
+            card:
+              type: vertical-stack
+              cards: |-
+                ${ ((states['sensor.restaurant_casual'].attributes.items || []).length === 0)
+                  ? [{ type: 'markdown', content: '_No restaurants yet._' }]
+                  : states['sensor.restaurant_casual'].attributes.items.map(item => ({
+                      type: 'custom:button-card',
+                      name: item.has_deal_today ? (item.name + ' — ' + item.deal_text) : item.name,
+                      icon: item.checked ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline',
+                      size: '20px',
+                      tap_action: {
+                        action: 'call-service',
+                        service: item.checked ? 'pyscript.restaurant_unmark_visited' : 'pyscript.restaurant_mark_visited',
+                        service_data: { id: item.id }
+                      },
+                      styles: {
+                        card: [
+                          { 'box-shadow': 'none' },
+                          { border: 'none' },
+                          { 'border-radius': '6px' },
+                          { padding: '3px 14px' },
+                          { margin: '0' },
+                          { 'background-color': item.has_deal_today ? 'rgba(240,165,0,0.18)' : 'transparent' }
+                        ],
+                        grid: [
+                          { 'grid-template-areas': '"i n"' },
+                          { 'grid-template-columns': 'min-content 1fr' },
+                          { 'align-items': 'center' }
+                        ],
+                        icon: [
+                          { color: item.checked ? '#9e9e9e' : (item.has_deal_today ? '#f0a500' : 'var(--secondary-text-color)') },
+                          { width: '20px' }
+                        ],
+                        name: [
+                          { 'justify-self': 'start' },
+                          { 'padding-left': '8px' },
+                          { 'font-size': '14px' },
+                          { 'font-weight': (!item.checked && item.has_deal_today) ? '600' : '400' },
+                          { color: item.checked ? '#9e9e9e' : 'var(--primary-text-color)' },
+                          { 'text-decoration': item.checked ? 'line-through' : 'none' }
+                        ]
+                      }
+                    })) }
+
+      - type: custom:stack-in-card
+        view_layout:
+          grid-area: sitdown
+        card_mod:
+          style: |
+            ha-card { padding-bottom: 12px; }
+        cards:
+          - type: markdown
+            content: >
+              <h3 style="text-align:center;margin:0 0 6px;padding-bottom:6px;
+              border-bottom:2px solid var(--divider-color);">Sit Down</h3>
+          - type: custom:config-template-card
+            entities:
+              - sensor.restaurant_sit_down
+            card:
+              type: vertical-stack
+              cards: |-
+                ${ ((states['sensor.restaurant_sit_down'].attributes.items || []).length === 0)
+                  ? [{ type: 'markdown', content: '_No restaurants yet._' }]
+                  : states['sensor.restaurant_sit_down'].attributes.items.map(item => ({
+                      type: 'custom:button-card',
+                      name: item.has_deal_today ? (item.name + ' — ' + item.deal_text) : item.name,
+                      icon: item.checked ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline',
+                      size: '20px',
+                      tap_action: {
+                        action: 'call-service',
+                        service: item.checked ? 'pyscript.restaurant_unmark_visited' : 'pyscript.restaurant_mark_visited',
+                        service_data: { id: item.id }
+                      },
+                      styles: {
+                        card: [
+                          { 'box-shadow': 'none' },
+                          { border: 'none' },
+                          { 'border-radius': '6px' },
+                          { padding: '3px 14px' },
+                          { margin: '0' },
+                          { 'background-color': item.has_deal_today ? 'rgba(240,165,0,0.18)' : 'transparent' }
+                        ],
+                        grid: [
+                          { 'grid-template-areas': '"i n"' },
+                          { 'grid-template-columns': 'min-content 1fr' },
+                          { 'align-items': 'center' }
+                        ],
+                        icon: [
+                          { color: item.checked ? '#9e9e9e' : (item.has_deal_today ? '#f0a500' : 'var(--secondary-text-color)') },
+                          { width: '20px' }
+                        ],
+                        name: [
+                          { 'justify-self': 'start' },
+                          { 'padding-left': '8px' },
+                          { 'font-size': '14px' },
+                          { 'font-weight': (!item.checked && item.has_deal_today) ? '600' : '400' },
+                          { color: item.checked ? '#9e9e9e' : 'var(--primary-text-color)' },
+                          { 'text-decoration': item.checked ? 'line-through' : 'none' }
+                        ]
+                      }
+                    })) }

@@ -1,0 +1,75 @@
+# Restaurant Rotator — helpers + add-form script.
+# Copy to /config/packages/restaurant_rotator.yaml on the HA box.
+# Requires packages to be enabled in configuration.yaml, e.g.:
+#   homeassistant:
+#     packages: !include_dir_named packages
+# Then restart HA (a YAML reload of helpers/scripts also works).
+
+input_text:
+  restaurant_new_name:
+    name: New restaurant name
+    max: 100
+  restaurant_new_deal_text:
+    name: New deal text
+    max: 100
+
+input_select:
+  restaurant_new_category:
+    name: New restaurant category
+    options:
+      - Fast Food
+      - Casual
+      - Sit Down
+    initial: Fast Food
+    icon: mdi:silverware-fork-knife
+  restaurant_new_deal_day:
+    name: New deal day
+    options:
+      - None
+      - Monday
+      - Tuesday
+      - Wednesday
+      - Thursday
+      - Friday
+      - Saturday
+      - Sunday
+    initial: None
+    icon: mdi:calendar
+
+script:
+  restaurant_add_from_form:
+    alias: Restaurant Rotator - Add from form
+    mode: single
+    sequence:
+      # Do nothing if no name was entered (pyscript also guards this).
+      - condition: template
+        value_template: "{{ states('input_text.restaurant_new_name') | trim != '' }}"
+      - service: pyscript.restaurant_add
+        data:
+          # pyscript normalizes the category (lowercases, spaces -> underscores)
+          # and treats deal_day "None"/"" as no deal, so we can pass raw values.
+          name: "{{ states('input_text.restaurant_new_name') | trim }}"
+          category: "{{ states('input_select.restaurant_new_category') }}"
+          deal_day: "{{ states('input_select.restaurant_new_deal_day') }}"
+          deal_text: "{{ states('input_text.restaurant_new_deal_text') | trim }}"
+      # Clear the form for next time.
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.restaurant_new_name
+        data:
+          value: ""
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.restaurant_new_deal_text
+        data:
+          value: ""
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.restaurant_new_category
+        data:
+          option: Fast Food
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.restaurant_new_deal_day
+        data:
+          option: None
