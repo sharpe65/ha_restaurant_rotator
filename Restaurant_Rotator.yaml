@@ -86,40 +86,61 @@ cards:
                 height: 140px !important;
                 overflow-y: auto;
               }
-      - type: custom:button-card
+      - type: button
         view_layout:
           grid-area: add
+        show_name: false
+        show_icon: true
         icon: mdi:plus
-        size: 48px
+        icon_height: 48px
         tap_action:
-          action: call-service
-          service: browser_mod.popup
-          data:
-            title: Add a Restaurant
-            dismissable: true
-            content:
-              type: entities
-              show_header_toggle: false
-              entities:
-                - entity: input_text.restaurant_new_name
-                  name: Name
-                - entity: input_select.restaurant_new_category
-                  name: Category
-                - entity: input_select.restaurant_new_deal_day
-                  name: Deal day (optional)
-                - entity: input_text.restaurant_new_deal_text
-                  name: Deal text (optional)
-            right_button: Add
-            right_button_action:
-              action: call-service
-              service: script.restaurant_add_from_form
-            left_button: Close
-            left_button_action:
-              action: none
+          action: fire-dom-event
+          browser_mod:
+            service: browser_mod.popup
+            data:
+              title: Add a Restaurant
+              dismissable: true
+              content:
+                type: entities
+                show_header_toggle: false
+                entities:
+                  - entity: input_text.restaurant_new_name
+                    name: Name
+                  - entity: input_select.restaurant_new_category
+                    name: Category
+                  - entity: input_select.restaurant_new_deal_day
+                    name: Deal day (optional)
+                  - entity: input_text.restaurant_new_deal_text
+                    name: Deal text (optional)
+              right_button: Add
+              right_button_action:
+                action: call-service
+                service: script.restaurant_add_from_form
+              left_button: Close
+              left_button_action:
+                action: none
         card_mod:
           style: |
             ha-card {
               height: 140px !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              padding: 0 !important;
+            }
+            ha-card > * {
+              width: 100% !important;
+              height: 100% !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            ha-state-icon,
+            ha-icon {
+              --mdc-icon-size: 48px !important;
+              color: var(--secondary-text-color) !important;
             }
 
   # === CATEGORY ROW: Fast Food | Casual | Sit Down =======================
