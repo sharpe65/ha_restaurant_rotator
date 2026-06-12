@@ -142,7 +142,7 @@ is exactly what horizontal-stack gives).
 
 ### 1. Date / Weather (top-left)
 - Date from `sensor.date` (or a template) + current weather.
-- Use the household weather entity (McKinney, TX — confirm entity name).
+- Use your household weather entity (confirm the entity name for your setup).
 - **[v1 assumption]** current conditions + temp only; forecast optional.
 
 ### 2. Today's Deals (top, spans 2 cols)
