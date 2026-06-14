@@ -144,16 +144,16 @@ def _today():
 
 
 def _week_start(now):
-    """Most recent Sunday 00:00 — the start of the current 'check' cycle.
+    """Most recent Monday 00:00 — the start of the current 'check' cycle.
 
     A restaurant counts as checked only if visited on/after this moment, so the
-    checkmarks clear automatically at Sunday midnight (the daily @time_trigger
+    checkmarks clear automatically at Monday midnight (the daily @time_trigger
     refresh recomputes the sensors). No separate reset job needed, and
     last_visited is never altered, so the rotation order is preserved.
     """
-    days_since_sunday = (now.weekday() + 1) % 7  # weekday(): Mon=0..Sun=6
-    sunday = now - datetime.timedelta(days=days_since_sunday)
-    return sunday.replace(hour=0, minute=0, second=0, microsecond=0)
+    days_since_monday = now.weekday()  # weekday(): Mon=0..Sun=6
+    monday = now - datetime.timedelta(days=days_since_monday)
+    return monday.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def _slugify(name):

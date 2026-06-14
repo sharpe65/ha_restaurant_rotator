@@ -10,7 +10,7 @@ A Home Assistant dashboard that helps a household decide **where to eat** by rot
 
 - **Rotation by recency** — tap a restaurant to mark it visited; it sinks to the bottom of its column. Never‑visited places float to the top.
 - **Tap to toggle** — tapping a checked restaurant un‑checks it and returns it to its prior position. No accidental‑tap regret.
-- **Weekly check reset** — "checked" is derived from the visit timestamp, so all checkmarks clear automatically at **Sunday 00:00** while preserving list order. No reset job to maintain.
+- **Weekly check reset** — "checked" is derived from the visit timestamp, so all checkmarks clear automatically at **Monday 00:00** while preserving list order. No reset job to maintain.
 - **Deal of the day** — a restaurant with a deal active today is pinned to the top of its column, tinted gold, and listed in the Today's Deals card.
 - **"Coming up" preview** — when there are no deals today, the Today's Deals card shows the next couple of upcoming deals (nearest day first).
 - **In‑dashboard add form** — a "+" button opens a popup to add a new restaurant (name, category, optional deal day/text).
